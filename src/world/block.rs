@@ -1,12 +1,9 @@
-#![allow(dead_code, non_upper_case_globals)]
+// #![allow(dead_code, non_upper_case_globals)]
 
-use render::texture::*;
 use world::chunk::*;
-use std::fmt::{ Debug, Formatter, Error };
-use std::cell::RefCell;
-use ::{ BlockTexture, App };
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(RustcDecodable, RustcEncodable)]
 pub struct BlockPos(pub i64, pub i64);
 
 // fn get_texture<'a>(app: &'a App, name: &str) -> &'a BlockTexture {
@@ -17,22 +14,8 @@ pub struct BlockPos(pub i64, pub i64);
 // }
 
 #[derive(Debug, Copy, Clone)]
-pub enum Blocks {
-    Air,
-    Stone
-}
-
-// impl Blocks {
-//     fn texture(&self, app: &App) -> Option<BlockTexture> {
-//         let cell = RefCell::new(get_texture(&app, "stone"));
-//         match *self {
-//             Blocks::Air => None,
-//             Blocks::Stone => Some(cell.clone().)
-//         }
-//     }
-// }
-
-#[derive(Debug, Copy, Clone)]
+#[allow(dead_code)]
+#[derive(RustcDecodable, RustcEncodable)]
 pub enum Material {
     Air,
     Earth,
@@ -42,15 +25,16 @@ pub enum Material {
     Wat
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
 pub struct Block {
     pub material: Material,
-    // pub texture: &'a BlockTexture,
     pub color: [f32; 4],
     pub hardness: f64,
 }
 
 impl Block {
+    #[allow(dead_code)]
     pub fn new() -> Block {
         Block {
             material: Material::Air,
@@ -60,21 +44,11 @@ impl Block {
     }
 }
 
-impl Debug for Block {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        formatter.debug_struct("Block")
-            .field("material", &self.material)
-            // .field("texture", &"<GFX Texture>")
-            .field("color", &self.color)
-            .field("hardness", &self.hardness)
-            .finish()
-    }
-}
-
 pub trait BlockEntity {
 
 }
 
+#[inline(always)]
 fn is_positive(n: i64) -> bool {
     n >= 0
 }

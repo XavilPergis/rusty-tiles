@@ -1,17 +1,15 @@
-// #![allow(unused_variables)]
-
 // Crate Imports ----------------------------------------------
 extern crate piston_window;
 extern crate rand;
 extern crate noise;
 extern crate num;
 extern crate threadpool;
+extern crate rustc_serialize;
 
 // Use from standart library ----------------------------------
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::mpsc;
-// use std::sync::mpsc::;
 
 // Use from external crates -----------------------------------
 use piston_window::*;
@@ -37,7 +35,8 @@ pub type BlockTexture = G2dTexture<'static>;
 
 pub struct App {
     window: PistonWindow,
-    texture_atlas: HashMap<&'static str, BlockTexture>
+    texture_atlas: HashMap<&'static str, BlockTexture>,
+    block_registry: BlockRegistry
 }
 
 impl App {
@@ -53,7 +52,8 @@ impl App {
                 .build()
                 .unwrap_or_else(|e| panic!("Error building PistonWindow: {}", e))
             },
-            texture_atlas: HashMap::new()
+            texture_atlas: HashMap::new(),
+            block_registry: BlockRegistry::new()
         }
     }
 
@@ -71,6 +71,11 @@ impl App {
             }
             None => false
         }
+    }
+
+    fn register_block(&mut self, name: &'static str) -> Result<(), bool> {
+        let block = Block::new();
+        self.block_registry.register_block(name, block)
     }
 
     fn size_as_tuple<N: NumCast>(&self) -> (N, N) {
@@ -92,26 +97,20 @@ fn main() {
 
     // let texture_atlas: HashMap<&str, BlockTexture> = HashMap::new();
 
+    app.register_texture_from_path("water", "textures/water.png");
     app.register_texture_from_path("sand",  "textures/sand.png");
-    app.register_texture_from_path("water", "textures/sand.png");
-    app.register_texture_from_path("grass", "textures/sand.png");
-    app.register_texture_from_path("sand",  "textures/sand.png");
-    app.register_texture_from_path("stone", "textures/sand.png");
+    app.register_texture_from_path("grass", "textures/grass_top.png");
+    app.register_texture_from_path("stone", "textures/stone.png");
+
+    app.register_block("water").unwrap();
+    app.register_block("sand").unwrap();
+    app.register_block("grass").unwrap();
 
     static PLAYER_ACCEL_RATE: f64 = 0.021;
     static PLAYER_DECEL_RATE: f64 = 1.09;
     static PLAYER_MAX_VELOCITY: f64 = 2.0;
     static PLAYER_VIEW_DISTANCE: i64 = 4;
-    static NUM_THREADS: usize = 16;
-
-    // let wg = RandomGenerator {};
-    // let wg = NoiseGenerator {
-    //     scale: 40.0,
-    //     stretch: 2.0
-    // };
-    // let wg = FlatGenerator {
-    //     thresh: 5
-    // };
+    static NUM_THREADS: usize = 8;
 
     let mut world: World = World::new();
 
@@ -130,22 +129,24 @@ fn main() {
     is.win_size = app.size_as_tuple();
 
     let wg = NoiseGenerator {
-        scale: 40.0,
-        stretch: 2.0
+        scale: 30.0,
+        stretch: 1.8,
+        shift: -0.3
     };
 
     while let Some(event) = app.window.next() {
         match event {
-            Event::Render(ra) => {
-                rendering::render_all(&mut app.window, &mut player.clone(), &world, &event, &is);
+            Event::Render(_ra) => {
+                rendering::render_all(&mut app.window, &mut app.texture_atlas, &mut player.clone(), &world, &event, &is);
             },
-            Event::AfterRender(ara) => {},
-            Event::Update(ua) => {
+            Event::AfterRender(_ara) => {},
+            Event::Update(_ua) => {
 
                 let current_block = BlockPos(player.pos.0.floor() as i64, player.pos.1.floor() as i64);
                 let current_chunk = current_block.containing_chunk_pos();
 
                 player.block_size += is.scroll_dir;
+                if is.scroll_dir > 0.0 { world.save(); }
                 is.scroll_dir = 0.0;
 
                 player.pos.0 += player.vel.0;
@@ -166,9 +167,10 @@ fn main() {
                             world.set_queued(chunk_pos);
                             let wgc = wg.clone();
                             let txc = tx.clone();
+                            let tbr = app.block_registry.clone();
                             pool.execute(move || {
-                                match txc.send((wgc.get_chunk(&chunk_pos), chunk_pos)).ok() {
-                                    Some(v) => {
+                                match txc.send((wgc.get_chunk(&tbr, &chunk_pos), chunk_pos)).ok() {
+                                    Some(_v) => {
                                         println!("Generated chunk ({}, {})", chunk_pos.x, chunk_pos.y);
                                     },
                                     None => { /* Something terrible happened! Ignore it for now. */ }
@@ -184,7 +186,7 @@ fn main() {
                 }
 
             },
-            Event::Idle(ia) => {},
+            Event::Idle(_ia) => {},
             Event::Input(ipt) => {
                 input::handle_input(ipt, &mut is);
             }

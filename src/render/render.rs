@@ -1,6 +1,7 @@
 use piston_window::*;
+use std::collections::HashMap;
 
-use ::Player;
+use ::{ Player, BlockTexture };
 use world::block::*;
 use world::world::*;
 use input::*;
@@ -10,7 +11,7 @@ fn world_to_screen(x: i64, y: i64, px: f64, py: f64) -> (f64, f64) {
     (x as f64 - px, y as f64 - py)
 }
 
-pub fn render_all(win: &mut PistonWindow, player: &mut Player, world: &World, event: &Event, is: &InputState) {
+pub fn render_all(win: &mut PistonWindow, texture_atlas: &HashMap<&'static str, BlockTexture>, player: &Player, world: &World, event: &Event, is: &InputState) {
 
     let topleft = &player.pos;
     let block_size = player.block_size;
@@ -36,20 +37,17 @@ pub fn render_all(win: &mut PistonWindow, player: &mut Player, world: &World, ev
         // Iterate over all blocks in current fov
         for xc in x0 .. x1 - 1 {
             for yc in y0 .. y1 - 1 {
-                // Only draw the block if it actually exists (which is hopefully 100% of the time)
-                if let Some(block) = world.get_block(BlockPos(xc, yc)) {
+                // Only draw the block if it exists.
+                if let Some((name, _)) = world.get_block(BlockPos(xc, yc)) {
                     // Dransfrorm world space to pixes space
                     let dp = world_to_screen(xc, yc, topleft.0, topleft.1);
 
                     // Translate...
                     let translated = ctx.transform.trans(dp.0 * block_size, dp.1 * block_size);
+                    let transformed = translated.scale(block_size / 16.0, block_size / 16.0);
 
-                    // Draw a square for each tile
-                    let square = rectangle::square(0.0, 0.0, block_size);
-
-                    // TODO: Don't get the block's color
-                    // Flush the square to the screen
-                    rectangle(block.color, square, translated, gl);
+                    // TODO: Why 16?
+                    image(texture_atlas.get(&name.as_str()).unwrap(), transformed, gl)
                 }
             }
         }

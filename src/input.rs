@@ -25,6 +25,7 @@ impl InputState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_mouse_position(&self) -> (f64, f64) {
         (self.mouse_x, self.mouse_y)
     }
@@ -39,17 +40,17 @@ pub fn handle_input(ipt: Input, is: &mut InputState) {
                     is.mouse_x = x;
                     is.mouse_y = y;
                 },
-                Motion::MouseRelative(x, y) => {},
-                Motion::MouseScroll(x, y)   => {
+                Motion::MouseRelative(_x, _y) => {},
+                Motion::MouseScroll(_x, y)   => {
                     is.scroll_dir = y;
                 },
-                Motion::ControllerAxis(c)   => {}
+                Motion::ControllerAxis(_c)   => {}
             }
             // println!("{:?}", m);
         },
         Input::Press(press) => {
             match press {
-                Button::Mouse(mouse) => {
+                Button::Mouse(_mouse) => {
                     //println!("{:?}", mouse);
                 },
                 Button::Keyboard(key) => {
@@ -61,12 +62,12 @@ pub fn handle_input(ipt: Input, is: &mut InputState) {
                         _ => {}
                     }
                 },
-                Button::Controller(controller) => {}
+                Button::Controller(_controller) => {}
             }
         },
         Input::Release(rel) => {
             match rel {
-                Button::Mouse(mouse) => {
+                Button::Mouse(_mouse) => {
                     // println!("{:?}", player.world.loaded_chunks);
                 },
                 Button::Keyboard(key) => {
@@ -78,12 +79,12 @@ pub fn handle_input(ipt: Input, is: &mut InputState) {
                         _ => {}
                     }
                 },
-                Button::Controller(controller) => {}
+                Button::Controller(_controller) => {}
             }
         },
-        Input::Text(t) => {},
+        Input::Text(_t) => {},
         Input::Resize(x, y) => { is.win_size = (x, y) },
-        Input::Focus(f) => {},
-        Input::Cursor(c) => {},
+        Input::Focus(_f) => {},
+        Input::Cursor(_c) => {},
     }
 }
