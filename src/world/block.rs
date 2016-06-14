@@ -3,7 +3,6 @@
 use world::chunk::*;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub struct BlockPos(pub i64, pub i64);
 
 // fn get_texture<'a>(app: &'a App, name: &str) -> &'a BlockTexture {
@@ -15,7 +14,6 @@ pub struct BlockPos(pub i64, pub i64);
 
 #[derive(Debug, Copy, Clone)]
 #[allow(dead_code)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub enum Material {
     Air,
     Earth,
@@ -26,7 +24,6 @@ pub enum Material {
 }
 
 #[derive(Debug, Copy, Clone)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub struct Block {
     pub material: Material,
     pub color: [f32; 4],
@@ -62,6 +59,7 @@ impl BlockPos {
 
         ((x.abs() % CHUNK_SIZE_i64) as u64, (y.abs() % CHUNK_SIZE_i64) as u64)
     }
+
     #[inline(always)]
     pub fn containing_chunk_pos(&self) -> ChunkPos {
         ChunkPos::new((self.0 as f64 / CHUNK_SIZE_i64 as f64).floor() as i64, (self.1 as f64 / CHUNK_SIZE_i64 as f64).floor() as i64)

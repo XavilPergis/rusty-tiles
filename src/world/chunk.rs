@@ -7,7 +7,6 @@ pub const CHUNK_SIZE: usize = 16;
 pub const CHUNK_SIZE_i64: i64 = CHUNK_SIZE as i64;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub struct ChunkPos {
     pub x: i64,
     pub y: i64
@@ -26,7 +25,6 @@ impl ChunkPos {
 }
 
 #[derive(Clone, Debug)]
-#[derive(RustcDecodable, RustcEncodable)]
 struct ChunkData {
     data: HashMap<BlockPos, (String, Block)>,
     pos: ChunkPos,
@@ -54,7 +52,6 @@ impl ChunkData {
 }
 
 #[derive(Clone, Debug)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub struct Chunk {
     map: ChunkData
 }

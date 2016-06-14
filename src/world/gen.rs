@@ -1,6 +1,8 @@
 use world::block::*;
 use world::chunk::*;
 
+use noise::*;
+
 use std::collections::HashMap;
 
 pub trait WorldGenerator {
@@ -74,27 +76,39 @@ impl BlockRegistry {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct NoiseGenerator {
     pub scale: f64,
     pub stretch: f64,
-    pub shift: f64
+    pub shift: f64,
+    pub wavelength: f64,
+    pub octaves: usize,
+    pub seed: u32,
+    pub water_thresh: f64,
+    pub sand_thresh: f64,
+    pub grass_thresh: f64,
+    pub algo: String,
 }
 
 impl WorldGenerator for NoiseGenerator {
     fn get_block(&self, block_registry: &BlockRegistry, bp: &BlockPos) -> (String, Block) {
 
-        use noise::{perlin2, Seed};
-        use noise::Brownian2;
+        let noise = Brownian2::new(match self.algo.as_str() {
+            "perlin"               => { perlin2 },
+            "simplex"              => { open_simplex2 },
+            "cell_value"           => { cell2_value },
+            "cell_range"           => { cell2_range },
+            "cell_range_inv"       => { cell2_range_inv },
+            "cell_manhattan_value" => { cell2_manhattan_value },
+            "cell_manhattan"       => { cell2_manhattan },
+            "cell_manhattan_inv"   => { cell2_manhattan_inv },
+            _ => { panic!() }
+        }, self.octaves).wavelength(self.wavelength);
+        let v = (noise.apply(&Seed::new(self.seed), &[bp.0 as f64 / self.scale, bp.1 as f64 / self.scale]) + self.shift).abs();
 
-        let b = Brownian2::new(perlin2, 9).wavelength(2.2);
-
-        let v = b.apply(&Seed::new(0), &[bp.0 as f64 / self.scale, bp.1 as f64 / self.scale]) + self.shift;
-        let c = v as f32;
-
-        if 0.0 > c {
+        if self.water_thresh > v {
             (String::from("water"), block_registry.get_block("water").unwrap())
-        } else if 0.1 > c && c >= 0.0 {
+        } else if self.sand_thresh > v && v >= self.water_thresh {
             (String::from("sand"), block_registry.get_block("sand").unwrap())
         } else {
             (String::from("grass"), block_registry.get_block("grass").unwrap())

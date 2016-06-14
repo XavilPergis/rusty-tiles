@@ -1,0 +1,12 @@
+{
+    "scale":      22.0,
+    "stretch":    20.0,
+    "shift":      -0.12,
+    "wavelength": 8.0,
+    "octaves":    8,
+    "seed":       69,
+    "wthresh":    0.5,
+    "sthresh":    0.55,
+    "gthresh":    1.0,
+    "algo":       "cell_manhattan"
+}

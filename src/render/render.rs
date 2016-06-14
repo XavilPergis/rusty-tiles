@@ -47,7 +47,8 @@ pub fn render_all(win: &mut PistonWindow, texture_atlas: &HashMap<&'static str, 
                     let transformed = translated.scale(block_size / 16.0, block_size / 16.0);
 
                     // TODO: Why 16?
-                    image(texture_atlas.get(&name.as_str()).unwrap(), transformed, gl)
+                    let tex = texture_atlas.get(&name.as_str());
+                    image(tex.unwrap(), transformed, gl);
                 }
             }
         }

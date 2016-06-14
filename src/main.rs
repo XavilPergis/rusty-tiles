@@ -4,10 +4,11 @@ extern crate rand;
 extern crate noise;
 extern crate num;
 extern crate threadpool;
-extern crate rustc_serialize;
+extern crate serde;
+extern crate serde_json;
 
 // Use from standart library ----------------------------------
-use std::collections::HashMap;
+use std::collections::*;
 use std::path::Path;
 use std::sync::mpsc;
 
@@ -15,6 +16,9 @@ use std::sync::mpsc;
 use piston_window::*;
 use num::NumCast;
 use threadpool::ThreadPool;
+use std::fs::File;
+use std::io::prelude::*;
+use serde_json::Value;
 
 // Local module definitions -----------------------------------
 mod world;
@@ -57,7 +61,7 @@ impl App {
         }
     }
 
-    fn register_texture_from_path<'a, P: AsRef<Path>>(&mut self, name: &'static str, path: P) -> bool {
+    fn register_texture_from_path<'a, P: AsRef<Path>>(&mut self, name: &'static str, path: P) -> Result<(), bool> {
         let texture = Texture::from_path(
             &mut self.window.factory,
             path, // The path to the texture
@@ -67,9 +71,9 @@ impl App {
         match texture.ok() {
             Some(tex) => {
                 self.texture_atlas.insert(name, tex);
-                true
+                Ok(())
             }
-            None => false
+            None => Err(false)
         }
     }
 
@@ -88,37 +92,33 @@ impl App {
 pub struct Player {
     pos: (f64, f64),
     vel: (f64, f64),
-    block_size: f64,
-    world: World
+    block_size: f64
 }
 
 fn main() {
     let mut app = App::new();
 
-    // let texture_atlas: HashMap<&str, BlockTexture> = HashMap::new();
-
-    app.register_texture_from_path("water", "textures/water.png");
-    app.register_texture_from_path("sand",  "textures/sand.png");
-    app.register_texture_from_path("grass", "textures/grass_top.png");
-    app.register_texture_from_path("stone", "textures/stone.png");
+    app.register_texture_from_path("water", "textures/water.png").unwrap();
+    app.register_texture_from_path("sand",  "textures/sand.png").unwrap();
+    app.register_texture_from_path("grass", "textures/grass.png").unwrap();
+    app.register_texture_from_path("stone", "textures/stone.png").unwrap();
 
     app.register_block("water").unwrap();
     app.register_block("sand").unwrap();
     app.register_block("grass").unwrap();
 
-    static PLAYER_ACCEL_RATE: f64 = 0.021;
-    static PLAYER_DECEL_RATE: f64 = 1.09;
-    static PLAYER_MAX_VELOCITY: f64 = 2.0;
-    static PLAYER_VIEW_DISTANCE: i64 = 4;
-    static NUM_THREADS: usize = 8;
+    static NUM_THREADS:          usize = 2;
+    static PLAYER_ACCEL_RATE:      f64 = 0.021;
+    static PLAYER_DECEL_RATE:      f64 = 1.09;
+    static PLAYER_MAX_VELOCITY:    f64 = 2.0;
+    static PLAYER_VIEW_DISTANCE:   i64 = 4;
 
     let mut world: World = World::new();
 
     let mut player = Player {
         pos: (0.0, 0.0),
         vel: (0.0, 0.0),
-        block_size: 40.0,
-        world: World::new()
+        block_size: 40.0
     };
 
     let pool = ThreadPool::new(NUM_THREADS);
@@ -128,10 +128,37 @@ fn main() {
 
     is.win_size = app.size_as_tuple();
 
+    let mut json = String::new();
+
+    let mut file = File::open("gen.json").unwrap();
+    file.read_to_string(&mut json).unwrap();
+
+    let gen_map: BTreeMap<String, Value> = serde_json::from_str(&json).unwrap();
+/*
+pub struct NoiseGenerator {
+    pub scale: f64,
+    pub stretch: f64,
+    pub shift: f64,
+    pub wavelength: f64,
+    pub octaves: usize,
+    pub seed: usize,
+    pub water_thresh: f64,
+    pub sand_thresh: f64,
+    pub grass_thresh: f64
+}
+ */
+    // scale, stretch, shift, wavelength, octaves, func
     let wg = NoiseGenerator {
-        scale: 30.0,
-        stretch: 1.8,
-        shift: -0.3
+        scale:        gen_map.get(&"scale".to_string())     .unwrap().as_f64().unwrap(), // 30.0
+        stretch:      gen_map.get(&"stretch".to_string())   .unwrap().as_f64().unwrap(), // 1.8
+        shift:        gen_map.get(&"shift".to_string())     .unwrap().as_f64().unwrap(), // 0.3
+        wavelength:   gen_map.get(&"wavelength".to_string()).unwrap().as_f64().unwrap(), // 2.7
+        octaves:      gen_map.get(&"octaves".to_string())   .unwrap().as_u64().unwrap() as usize,
+        seed:         gen_map.get(&"seed".to_string())      .unwrap().as_u64().unwrap() as u32,
+        water_thresh: gen_map.get(&"wthresh".to_string())   .unwrap().as_f64().unwrap(),
+        sand_thresh:  gen_map.get(&"sthresh".to_string())   .unwrap().as_f64().unwrap(),
+        grass_thresh: gen_map.get(&"gthresh".to_string())   .unwrap().as_f64().unwrap(),
+        algo:         gen_map.get(&"algo".to_string())      .unwrap().as_string().unwrap().to_string()
     };
 
     while let Some(event) = app.window.next() {
@@ -146,7 +173,6 @@ fn main() {
                 let current_chunk = current_block.containing_chunk_pos();
 
                 player.block_size += is.scroll_dir;
-                if is.scroll_dir > 0.0 { world.save(); }
                 is.scroll_dir = 0.0;
 
                 player.pos.0 += player.vel.0;

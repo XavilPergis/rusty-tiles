@@ -1,12 +1,8 @@
 use std::collections::{ HashMap, HashSet };
 use world::block::*;
 use world::chunk::*;
-use std::io::prelude::*;
-use std::fs::File;
-use rustc_serialize::json::{ self, Json, ToJson };
 
 #[derive(Clone)]
-#[derive(RustcDecodable, RustcEncodable)]
 pub struct World {
     pub loaded_chunks: HashMap<ChunkPos, Box<Chunk>>,
     pub queued_chunks: HashSet<ChunkPos>
@@ -54,27 +50,6 @@ impl World {
         } else {
             None
         }
-    }
-
-    pub fn save(&self) {
-        for (k, v) in self.loaded_chunks.iter() {
-            let pos: ChunkPos = *k;
-            let ref chunk: Chunk = **v;
-            for x in 0..16 {
-                for y in 0..16 {
-                    print!("\"{},{}\":{},", x, y, json::encode(&chunk.get_block_at_local(x, y)).unwrap());
-                }
-            }
-            let f = format!("{},{}", pos.x, pos.y);
-
-            let ek = json::encode(&f);
-            let ev = json::encode(v);
-            println!("{} /// {}", ek.unwrap(), ev.unwrap());
-        }
-        // let mut f = File::create("foo.txt").unwrap();
-        // let enc: String = json::encode(self).unwrap();
-        //
-        // f.write_all(enc.as_bytes()).unwrap();
     }
 }
 
